@@ -8,8 +8,7 @@ Alfille's [more in-depth work](https://github.com/alfille/distance) which
 includes a CPU based Monte Carlo calculation.  The python script in this
 repository is designed to accept the same parameters and generate similar
 output as the C code in the linked project, but generally runs much faster when
-run with larger samples sizes (I've seen as much as a 150x speedup using a fast
-GPU).
+run with larger samples sizes.
 
 Two significant trade offs are made to achieve this:
 
@@ -19,6 +18,65 @@ Two significant trade offs are made to achieve this:
  2. The code is less intuitive as it involves manipulating 3 dimensional
     tensors (but this is precisely what allows it to run well on massively
     parallel architectures such as a GPUs).
+
+## Informal Benchmarks
+
+We first consider benchmarks is from a P1 laptop with an Intel i9-9880H CPU,
+Nvidia T2000 GPU, and 64 GB of RAM:
+
+Device | Command                                        | Time (s) | Speedup
+:-----:|:-----------------------------------------------|---------:|-------:
+  CPU  | ./distance -r 100000000                        | 8143.240 |  1.0
+  CPU  | python3 cubedistance.py -r 100000000 -f double |  318.195 | 25.6
+  CPU  | python3 cubedistance.py -r 100000000 -f single |  239.116 | 34.1
+  GPU  | python3 cubedistance.py -r 100000000 -f double |  253.708 | 32.1
+  GPU  | python3 cubedistance.py -r 100000000 -f single |   96.461 | 84.0
+
+These show a fairly significant speedup, reflecting a combination of greater
+reuse of intermediate results and taking advantage of the parallel
+computational hardware available in the CPU and GPU. Despite the limited
+support for double precision in the GPU, the computation still runs a bit
+faster on the GPU even in double precision.  Performance difference between
+single and double precision on the GPU is less than I would have expected,
+suggesting that memory bandwidth may be a limiting factor.
+
+We next consider benchmarks for a larger server, with dual Epyc 7742
+processors, multiple Nvidia 2080 Ti's (only one is used for this benchmark),
+and 1024 GB of RAM:
+
+Device | Command                                                      | Time (s) | Speedup
+:-----:|:-------------------------------------------------------------|---------:|-------:
+  CPU  | ./distance -r 100000000                                      | 9047.369 |   1.0
+  CPU  | python3 cubedistance.py -r 100000000 -f double               |  244.071 |  37.1
+  CPU  | python3 cubedistance.py -r 100000000 -f single               |  237.488 |  38.1
+  CPU  | python3 cubedistance.py -r 100000000 -f double -b 2000000000 |   42.957 | 210.6
+  CPU  | python3 cubedistance.py -r 100000000 -f single -b 2000000000 |   25.718 | 351.8
+  GPU  | python3 cubedistance.py -r 100000000 -f double               |   41.590 | 217.5
+  GPU  | python3 cubedistance.py -r 100000000 -f single               |   15.293 | 591.6
+
+These results show a larger speedup, reflecting the larger number of parallel
+resources available on this hardware.  Note that the single threaded result is
+actually slower than we saw previously on the laptop, reflecting a lower boost
+clock speed on the server CPU.  The CPU results with the default batch size
+appear to be limited by resource contention by the many cores; setting the
+batch size to a larger value (using -b) appears to relieve this contention
+leading to better performance. (Increasing the batch size did not improve
+performance on the laptop, results not shown).  The single consumer-grade
+GPU is able to outperform the much more expensive server CPUs, even at
+double precision.  Further performance increases should be possible by taking
+advantage of the multiple GPUs in this machine.
+
+The fine print: These tests were run with a minimal amount of rigor, and thus
+the results should be viewed as informal; the reader should run benchmarks
+on their own hardware before making critical decisions based on them. The tests
+were run with distance commit 9bea773ac859fef193297b60a5b9cb06737ba181 compiled
+with gcc -Ofast and cubedistance commit
+44555032aac32b2d0cd108226605b2778a43f70c.  Timing was done with the unix `time`
+command and only a single run was done of each benchmark.  No attempts were
+made to control for other processes on the machines (although the machines were
+largely otherwise idle), and the exact versions of all libraries used was not
+recorded.  GPU vs CPU was controlled by running the command within or outside
+of a container with the required NVidia CUDA libraries.
 
 ## Installation
 
