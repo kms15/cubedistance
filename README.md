@@ -8,18 +8,15 @@ Alfille's [more in-depth work](https://github.com/alfille/distance) which
 includes a CPU based Monte Carlo calculation.  The python script in this
 repository is designed to accept the same parameters and generate similar
 output as the C code in the linked project, but generally runs much faster when
-run with larger samples sizes (I've seen as much as a 400x speedup using a fast
+run with larger samples sizes (I've seen as much as a 150x speedup using a fast
 GPU).
 
-Three significant trade offs are made to achieve this:
+Two significant trade offs are made to achieve this:
 
- 1. Calculations are done in 32-bit precision (as most GPUs do not support
-    64-bit precision).
-
- 2. More dependencies are required (e.g. TensorFlow, TensorFlow-Probability,
+ 1. More dependencies are required (e.g. TensorFlow, TensorFlow-Probability,
     and potentially libraries like libcudnn for GPU support).
 
- 3. The code is less intuitive as it involves manipulating 3 dimensional
+ 2. The code is less intuitive as it involves manipulating 3 dimensional
     tensors (but this is precisely what allows it to run well on massively
     parallel architectures such as a GPUs).
 
@@ -62,7 +59,7 @@ will show the following usage instructions:
 
     Usage:
       cubedistance.py [-d <max_dim>] [-p <max_power>] [-r <num_samples>]
-          [-b <batch_size>] [-n]
+          [-n] [-b <batch_size>] [-f <precision>]
       cubedistance.py (-h | --help)
 
     Options:
@@ -70,11 +67,14 @@ will show the following usage instructions:
       -d <max_dim>      Maximum hypercube dimensions [default: 100]
       -p <max_power>    Maximum power of the p-norm [default: 3]
       -r <num_samples>  Number of Monte Carlo samples for each entry
-                        [default: 100000000]
+                        [default: 1000000]
+      -n                Normalize to the longest diagonal
       -b <batch_size>   The maximum number of parallel values computed in each
                         batch, equal to the number of samples in the batch times
-                        max_dim and max_power. [default: 100000000]
-      -n                Normalize to the longest diagonal
+                        max_dim and max_power. [default: 1000000]
+      -f <precision>    Use the specified floating point precision; valid options
+                        are half, single, and double. Note that many devices do
+                        not support double or half precision [default: double]
 
 ## Examples
 

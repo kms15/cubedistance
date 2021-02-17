@@ -6,7 +6,7 @@ By Kendrick Shaw 2021 -- MIT License
 
 Usage:
   cubedistance.py [-d <max_dim>] [-p <max_power>] [-r <num_samples>]
-      [-b <batch_size>] [-n]
+      [-n] [-b <batch_size>] [-f <precision>]
   cubedistance.py (-h | --help)
 
 Options:
@@ -15,10 +15,13 @@ Options:
   -p <max_power>    Maximum power of the p-norm [default: 3]
   -r <num_samples>  Number of Monte Carlo samples for each entry
                     [default: 1000000]
+  -n                Normalize to the longest diagonal
   -b <batch_size>   The maximum number of parallel values computed in each
                     batch, equal to the number of samples in the batch times
                     max_dim and max_power. [default: 1000000]
-  -n                Normalize to the longest diagonal
+  -f <precision>    Use the specified floating point precision; valid options
+                    are half, single, and double. Note that many devices do
+                    not support double or half precision [default: double]
 """
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1' # hide tensorflow startup messages
@@ -28,7 +31,7 @@ from tensorflow import math as tfm
 from docopt import docopt
 
 @tf.function
-def sample_batch(n_samples, max_dim, max_power):
+def sample_batch(n_samples, max_dim, max_power, dtype):
     """ Calculate a sum of distance samples for various dimensions and norms
 
     Generates a batch of *n_samples* of pairs of points, and uses those points
@@ -40,8 +43,9 @@ def sample_batch(n_samples, max_dim, max_power):
     # create two lists of random points and their vector difference,
     # where the first dimension is the sample number and the second the
     # coordinates for the sample
-    x1s = tfd.Uniform().sample((n_samples, max_dim))
-    x2s = tfd.Uniform().sample((n_samples, max_dim))
+    zero = tf.zeros((), dtype=dtype) # used to pass in dtype to Uniform
+    x1s = tfd.Uniform(low=zero).sample((n_samples, max_dim))
+    x2s = tfd.Uniform(low=zero).sample((n_samples, max_dim))
     vector_difference = x2s - x1s
 
     # add a third dimension to the tensor which is the vector coordinate
@@ -56,7 +60,7 @@ def sample_batch(n_samples, max_dim, max_power):
     # the second the dimension of the hypercube, and the third the power
     # of the norm.
     norm = tfm.pow(tfm.cumsum(sum_terms, axis=1),
-        tf.reshape(1/tf.range(1., max_power + 1),
+        tf.reshape(1/tf.cast(tf.range(1, max_power + 1), dtype=dtype),
             (1, 1, max_power)))
 
     # return the sum of the norms
@@ -69,15 +73,20 @@ if __name__ == '__main__':
     max_dim = int(arguments['-d'])
     n_samples = int(arguments['-r'])
     max_batch_size = int(int(arguments['-b']) / max_dim / max_power)
+    dtype = tf.float16 if arguments['-f'] == 'half' else (
+            tf.float32 if arguments['-f'] == 'single' else (
+            tf.float64 if arguments['-f'] == 'double' else (
+                None)))
+    assert dtype != None, f'Invalid datatype for -f "' + arguments["-f"] + '"'
 
     # Generate samples in batches that will fit into the GPU's memory,
     # accumulating the sum of distances for each table entry as we go.
-    sample_sums = tf.zeros((max_dim, max_power))
+    sample_sums = tf.zeros((max_dim, max_power), dtype=dtype)
     sample_count = 0
 
     while sample_count < n_samples:
         batch_size = min(n_samples - sample_count, max_batch_size)
-        sample_sums += sample_batch(batch_size, max_dim, max_power)
+        sample_sums += sample_batch(batch_size, max_dim, max_power, dtype)
         sample_count += batch_size
 
     # divide each entry by the number of samples to convert the sums to means
@@ -86,8 +95,10 @@ if __name__ == '__main__':
     # normalize to the longest diagonal if requested
     if (arguments['-n']):
         means /= tf.pow(
-            tf.reshape(tf.range(1., max_dim + 1), (max_dim, 1)),
-            tf.reshape(1/tf.range(1., max_power + 1), (1, max_power)))
+            tf.reshape(tf.cast(tf.range(1, max_dim + 1), dtype=dtype),
+                (max_dim, 1)),
+            tf.reshape(1/tf.cast(tf.range(1, max_power + 1), dtype=dtype),
+                (1, max_power)))
 
     # display the table in CSV form
     print('DIM\Power, ' + ', '.join([str(i) for i in range(1, max_power + 1)]))
