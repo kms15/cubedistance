@@ -36,7 +36,7 @@ These show a fairly significant speedup, reflecting a combination of greater
 reuse of intermediate results and taking advantage of the parallel
 computational hardware available in the CPU and GPU. Despite the limited
 support for double precision in the GPU, the computation still runs a bit
-faster on the GPU even in double precision.  Performance difference between
+faster on the GPU even in double precision.  The performance difference between
 single and double precision on the GPU is less than I would have expected,
 suggesting that memory bandwidth may be a limiting factor.
 
@@ -58,13 +58,13 @@ These results show a larger speedup, reflecting the larger number of parallel
 resources available on this hardware.  Note that the single threaded result is
 actually slower than we saw previously on the laptop, reflecting a lower boost
 clock speed on the server CPU.  The CPU results with the default batch size
-appear to be limited by resource contention by the many cores; setting the
+appear to be limited by resource contention between the many cores; setting the
 batch size to a larger value (using -b) appears to relieve this contention
 leading to better performance. (Increasing the batch size did not improve
-performance on the laptop, results not shown).  The single consumer-grade
-GPU is able to outperform the much more expensive server CPUs, even at
-double precision.  Further performance increases should be possible by taking
-advantage of the multiple GPUs in this machine.
+performance on the laptop, results not shown).  Note that the single
+consumer-grade GPU is able to outperform the much more expensive server CPUs,
+even at double precision.  Further performance increases should be possible by
+taking advantage of the multiple GPUs in this machine.
 
 The fine print: These tests were run with a minimal amount of rigor, and thus
 the results should be viewed as informal; the reader should run benchmarks
