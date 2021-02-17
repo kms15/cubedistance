@@ -136,8 +136,9 @@ will show the following usage instructions:
 
 ## Examples
 
-The following will run the program with its default parameters (i.e. one million100
-dimensions with up to the L3-norm):
+The following will run the program with its default parameters (i.e. one
+million samples, up to one hundred hypercube dimensions with up to the
+L3-norm):
 
     python3 cubedistance.py
 
