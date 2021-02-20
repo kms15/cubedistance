@@ -26,11 +26,12 @@ Nvidia T2000 GPU, and 64 GB of RAM:
 
 Device | Command                                        | Time (s) | Speedup
 :-----:|:-----------------------------------------------|---------:|-------:
-  CPU  | ./distance -r 100000000                        | 8143.240 |  1.0
-  CPU  | python3 cubedistance.py -r 100000000 -f double |  318.195 | 25.6
-  CPU  | python3 cubedistance.py -r 100000000 -f single |  239.116 | 34.1
-  GPU  | python3 cubedistance.py -r 100000000 -f double |  253.708 | 32.1
-  GPU  | python3 cubedistance.py -r 100000000 -f single |   96.461 | 84.0
+  CPU  | ./distance -r 100000000 # Original             | 8143.240 |  0.061
+  CPU  | ./distance -r 100000000 # Optimized            |  493.446 |  1.00
+  CPU  | python3 cubedistance.py -r 100000000 -f double |  318.195 |  1.55
+  CPU  | python3 cubedistance.py -r 100000000 -f single |  233.384 |  2.11
+  GPU  | python3 cubedistance.py -r 100000000 -f double |  253.708 |  1.94
+  GPU  | python3 cubedistance.py -r 100000000 -f single |   96.461 |  5.11
 
 These show a fairly significant speedup, reflecting a combination of greater
 reuse of intermediate results and taking advantage of the parallel
@@ -46,13 +47,14 @@ and 1024 GB of RAM:
 
 Device | Command                                                      | Time (s) | Speedup
 :-----:|:-------------------------------------------------------------|---------:|-------:
-  CPU  | ./distance -r 100000000                                      | 9047.369 |   1.0
-  CPU  | python3 cubedistance.py -r 100000000 -f double               |  244.071 |  37.1
-  CPU  | python3 cubedistance.py -r 100000000 -f single               |  237.488 |  38.1
-  CPU  | python3 cubedistance.py -r 100000000 -f double -b 2000000000 |   42.957 | 210.6
-  CPU  | python3 cubedistance.py -r 100000000 -f single -b 2000000000 |   25.718 | 351.8
-  GPU  | python3 cubedistance.py -r 100000000 -f double               |   41.590 | 217.5
-  GPU  | python3 cubedistance.py -r 100000000 -f single               |   15.293 | 591.6
+  CPU  | ./distance -r 100000000 # Original                           | 9047.369 |  0.058
+  CPU  | ./distance -r 100000000 # Optimized                          |  521.989 |  1.00
+  CPU  | python3 cubedistance.py -r 100000000 -f double               |  244.071 |  2.14
+  CPU  | python3 cubedistance.py -r 100000000 -f single               |  237.488 |  2.20
+  CPU  | python3 cubedistance.py -r 100000000 -f double -b 2000000000 |   42.957 | 12.1
+  CPU  | python3 cubedistance.py -r 100000000 -f single -b 2000000000 |   25.718 | 20.3
+  GPU  | python3 cubedistance.py -r 100000000 -f double               |   41.590 | 12.5
+  GPU  | python3 cubedistance.py -r 100000000 -f single               |   15.293 | 34.1
 
 These results show a larger speedup, reflecting the larger number of parallel
 resources available on this hardware.  Note that the single threaded result is
@@ -69,7 +71,8 @@ taking advantage of the multiple GPUs in this machine.
 The fine print: These tests were run with a minimal amount of rigor, and thus
 the results should be viewed as informal; the reader should run benchmarks
 on their own hardware before making critical decisions based on them. The tests
-were run with distance commit 9bea773ac859fef193297b60a5b9cb06737ba181 compiled
+were run with distance commits 9bea773ac859fef193297b60a5b9cb06737ba181 and
+2e8a25f937d8559aeeab2370786f8d2817d8b74c compiled
 with gcc -Ofast and cubedistance commit
 44555032aac32b2d0cd108226605b2778a43f70c.  Timing was done with the unix `time`
 command and only a single run was done of each benchmark.  No attempts were
